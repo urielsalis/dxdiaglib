@@ -2,3 +2,4 @@ arkkey
 .idea/
 *.iml
 target/
+*.json
