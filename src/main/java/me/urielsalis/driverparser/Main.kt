@@ -26,7 +26,7 @@ import java.net.URL
 fun main(args: Array<String>) {
     Nvidia.init()
     AMD.init()
-    Intel.init()
+    Intel.refresh()
     val configuration = Configuration.Builder()
             .setName("Urielsalads") //Set the nick of the bot. CHANGE IN YOUR CODE
             .addServer("irc.esper.net") //Join the freenode network

@@ -18,14 +18,16 @@ class IntelArkDriverPostProcessor : PostProcessor {
     override fun process(dxdiag: Dxdiag): Dxdiag {
         val systemInfo = dxdiag["System Information"] as SystemInfo
         val cpu = systemInfo.cpu!!
-        if (!cpu.startsWith("Intel(R)")) {
-            return dxdiag
-        }
-        val cpuName = cpu.split(" ")[2]
+        val split = cpu.split(" ")
+        val cpuName = split.filter { it.length > 2 }.last { it[0].isLetter() && it[1].isDigit() }
         val mapper = jacksonObjectMapper()
         val tree = mapper.readTree(URL("https://odata.intel.com/API/v1_0/Products/Processors()?api_key=${File("arkkey").readText()}&\$select=GraphicsModel&\$filter=substringof(%27$cpuName%27,ProductName)&\$format=json"))
-        val graphicsModel = tree["d"][0]["GraphicsModel"].textValue()
+        val graphicsModel = tree["d"][0]["GraphicsModel"]?.textValue()
 
+        if (graphicsModel == null) {
+            dxdiag.extraData[getName()] = DriverResults(mapOf(cpuName to DriverDownload(cpuName, "", "No iGPU")))
+            return dxdiag
+        }
         val result = findDriver(graphicsModel) ?: return dxdiag
         val drivers: Map<String, DriverDownload> = mapOf(graphicsModel to result)
         dxdiag.extraData[getName()] = DriverResults(drivers)
