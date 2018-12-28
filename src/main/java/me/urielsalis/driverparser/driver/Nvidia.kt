@@ -17,8 +17,14 @@ object Nvidia : DriverFinder {
 
     override fun search(device: DisplayDevice, os: String): DriverDownload? {
         val parsedOs = parseOS(os)
-        val url = downloads[device.chipType to parsedOs] ?: return null
-        return DriverDownload(device.chipType!!, parsedOs, url)
+        val name = if (device.chipType!!.endsWith("GB")) {
+            val split = device.chipType.split(" ")
+            split.subList(0, split.size - 1).joinToString(" ")
+        } else {
+            device.chipType
+        }
+        val url = downloads[name to parsedOs] ?: return null
+        return DriverDownload(device.chipType, parsedOs, url)
     }
 
     private fun parseOS(os: String): String {

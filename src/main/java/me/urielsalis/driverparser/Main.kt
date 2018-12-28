@@ -28,10 +28,12 @@ fun main(args: Array<String>) {
     AMD.init()
     Intel.refresh()
     val configuration = Configuration.Builder()
-            .setName("Urielsalads") //Set the nick of the bot. CHANGE IN YOUR CODE
-            .addServer("irc.esper.net") //Join the freenode network
-            .addAutoJoinChannel("#mchelptraining") //Join the official #pircbotx channel
-            .addListener(MyListener()) //Add our listener that will be called on Events
+            .setName("Urielsalads")
+            .setAutoReconnect(true)
+            .addServer("irc.esper.net")
+            .setRealName("Urielsalads")
+            .addAutoJoinChannel("#mchelptraining")
+            .addListener(MyListener())
             .buildConfiguration()
 
     //Create our bot with the configuration
