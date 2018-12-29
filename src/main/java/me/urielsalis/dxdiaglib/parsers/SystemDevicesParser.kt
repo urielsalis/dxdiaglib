@@ -1,7 +1,7 @@
 package me.urielsalis.dxdiaglib.parsers
 
 import me.urielsalis.dxdiaglib.model.Dxdiag
-import me.urielsalis.dxdiaglib.model.Section
+import me.urielsalis.dxdiaglib.model.extradata.Section
 import me.urielsalis.dxdiaglib.model.extradata.SystemDevice
 import me.urielsalis.dxdiaglib.model.extradata.SystemDevices
 

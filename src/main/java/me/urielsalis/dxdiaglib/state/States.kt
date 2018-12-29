@@ -1,7 +1,7 @@
 package me.urielsalis.dxdiaglib.state
 
-import me.urielsalis.dxdiaglib.model.Section
-import me.urielsalis.dxdiaglib.model.SubSection
+import me.urielsalis.dxdiaglib.model.extradata.Section
+import me.urielsalis.dxdiaglib.model.extradata.SubSection
 
 sealed class State(open val context: VariableContext)
 

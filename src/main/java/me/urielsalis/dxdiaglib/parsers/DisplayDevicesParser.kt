@@ -1,9 +1,9 @@
 package me.urielsalis.dxdiaglib.parsers
 
 import me.urielsalis.dxdiaglib.model.Dxdiag
-import me.urielsalis.dxdiaglib.model.Section
 import me.urielsalis.dxdiaglib.model.extradata.DisplayDevice
 import me.urielsalis.dxdiaglib.model.extradata.DisplayDevices
+import me.urielsalis.dxdiaglib.model.extradata.Section
 
 
 class DisplayDevicesParser : DxdiagParser {
