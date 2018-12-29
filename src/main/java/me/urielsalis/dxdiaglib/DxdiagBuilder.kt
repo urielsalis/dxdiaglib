@@ -5,7 +5,9 @@ import me.urielsalis.dxdiaglib.model.postprocessor.PostProcessor
 import me.urielsalis.dxdiaglib.model.postprocessor.RequiredParser
 import me.urielsalis.dxdiaglib.model.postprocessor.RequiredParserNotFound
 import me.urielsalis.dxdiaglib.parsers.DxdiagParser
-import me.urielsalis.dxdiaglib.state.*
+import me.urielsalis.dxdiaglib.state.InitialState
+import me.urielsalis.dxdiaglib.state.State
+import me.urielsalis.dxdiaglib.state.VariableContext
 import kotlin.reflect.full.findAnnotation
 
 class DxdiagBuilder {
@@ -45,25 +47,7 @@ class DxdiagBuilder {
 
     private fun parseDxdiag(dxdiag: String): Dxdiag {
         var currentState: State = InitialState(VariableContext("root"))
-        dxdiag.lines().forEach {
-            when (currentState) {
-                is InitialState -> {
-                    currentState = (currentState as InitialState).startSection(it)
-                }
-                is SectionStart -> {
-                    currentState = (currentState as SectionStart).processSectionName(it)
-                }
-                is SectionName -> {
-                    currentState = (currentState as SectionName).finishSection(it)
-                }
-                is SectionEnd -> {
-                    currentState = (currentState as SectionEnd).verifyNextState(it)
-                }
-                is VariableRead -> {
-                    currentState = (currentState as VariableRead).verifyNextState(it)
-                }
-            }
-        }
+        dxdiag.lines().forEach { currentState = currentState.next(it) }
         return Dxdiag(currentState.context.sections, mutableMapOf())
     }
 

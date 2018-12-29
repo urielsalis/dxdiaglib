@@ -28,7 +28,7 @@ fun main(args: Array<String>) {
     AMD.init()
     Intel.refresh()
     val configuration = Configuration.Builder()
-            .setName("Urielsaladsdev")
+            .setName("Urielsalads")
             .setAutoReconnect(true)
             .addServer("irc.esper.net")
             .setRealName("Urielsalads")

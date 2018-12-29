@@ -3,10 +3,12 @@ package me.urielsalis.dxdiaglib.state
 import me.urielsalis.dxdiaglib.model.extradata.Section
 import me.urielsalis.dxdiaglib.model.extradata.SubSection
 
-sealed class State(open val context: VariableContext)
+sealed class State(open val context: VariableContext) {
+    abstract fun next(it: String): State
+}
 
 data class VariableSectionEnd(override val context: VariableContext) : State(context) {
-    fun startSection(it: String) = if (it.trim().startsWith("-")) {
+    override fun next(it: String) = if (it.trim().startsWith("-")) {
         SectionStart(context)
     } else if (it.isBlank()) {
         VariableSectionEnd(context)
@@ -23,11 +25,11 @@ data class VariableSectionEnd(override val context: VariableContext) : State(con
 }
 
 data class SectionStart(override val context: VariableContext) : State(context) {
-    fun processSectionName(it: String) = SectionName(context, it.trim())
+    override fun next(it: String) = SectionName(context, it.trim())
 }
 
 data class SectionName(override val context: VariableContext, val name: String) : State(context) {
-    fun finishSection(it: String) = if (it.trim().startsWith("-")) {
+    override fun next(it: String) = if (it.trim().startsWith("-")) {
         val newContext = VariableContext(
                 name,
                 0,
@@ -41,7 +43,7 @@ data class SectionName(override val context: VariableContext, val name: String) 
 }
 
 data class SectionEnd(override val context: VariableContext) : State(context) {
-    fun verifyNextState(it: String) = if (it.isBlank()) {
+    override fun next(it: String) = if (it.isBlank()) {
         //Empty section, lets get to the next one
         InitialState(context)
     } else {
@@ -51,7 +53,7 @@ data class SectionEnd(override val context: VariableContext) : State(context) {
 }
 
 data class VariableRead(override val context: VariableContext, val key: String, val value: String) : State(context) {
-    fun verifyNextState(it: String) = when {
+    override fun next(it: String) = when {
         it.isBlank() -> {
             //We ended the subsection, possibly the entire section
             val newContext = VariableContext(
