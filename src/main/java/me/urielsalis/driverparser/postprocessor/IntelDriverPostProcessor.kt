@@ -1,6 +1,6 @@
 package me.urielsalis.driverparser.postprocessor
 
-import me.urielsalis.driverparser.driver.Intel
+import  me.urielsalis.driverparser.driver.Intel
 import me.urielsalis.dxdiaglib.model.extradata.DisplayDevice
 import me.urielsalis.dxdiaglib.model.postprocessor.RequiredParser
 import me.urielsalis.dxdiaglib.parsers.DisplayDevicesParser

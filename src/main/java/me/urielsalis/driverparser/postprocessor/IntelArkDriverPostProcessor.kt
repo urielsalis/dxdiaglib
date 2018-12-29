@@ -25,12 +25,12 @@ class IntelArkDriverPostProcessor : PostProcessor {
         val graphicsModel = tree["d"][0]["GraphicsModel"]?.textValue()
 
         if (graphicsModel == null) {
-            dxdiag.extraData[getName()] = DriverResults(mapOf(cpuName to DriverDownload(cpuName, "", "No iGPU")))
+            dxdiag.extras[getName()] = DriverResults(mapOf(cpuName to DriverDownload(cpuName, "", "No iGPU")))
             return dxdiag
         }
         val result = findDriver(graphicsModel) ?: return dxdiag
         val drivers: Map<String, DriverDownload> = mapOf(graphicsModel to result)
-        dxdiag.extraData[getName()] = DriverResults(drivers)
+        dxdiag.extras[getName()] = DriverResults(drivers)
         return dxdiag
     }
 

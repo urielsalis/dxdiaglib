@@ -1,27 +1,23 @@
 package me.urielsalis.dxdiaglib.parsers
 
-import me.urielsalis.dxdiaglib.model.extradata.KeyValueSection
-import me.urielsalis.dxdiaglib.model.extradata.Section
-import me.urielsalis.dxdiaglib.model.extradata.ExtraData
-import me.urielsalis.dxdiaglib.model.extradata.NullData
+import me.urielsalis.dxdiaglib.model.Dxdiag
+import me.urielsalis.dxdiaglib.model.Section
 import me.urielsalis.dxdiaglib.model.extradata.SystemInfo
 
 class SystemInfoParser : DxdiagParser {
-    override fun parse(sections: Map<String, List<Section>>): ExtraData {
-        val systemInfoSection = sections["System Information"]?.first() as KeyValueSection? ?: return NullData()
-        return SystemInfo(systemInfoSection["Time of this report"].firstOrNull(),
-                systemInfoSection["Machine name"].firstOrNull(),
-                systemInfoSection["Operating System"].firstOrNull(),
-                systemInfoSection["Language"].firstOrNull(),
-                systemInfoSection["System Manufacturer"].firstOrNull(),
-                systemInfoSection["System Model"].firstOrNull(),
-                systemInfoSection["Processor"].firstOrNull(),
-                systemInfoSection["Memory"].firstOrNull(),
-                systemInfoSection["Windows Dir"].firstOrNull())
-    }
+    override fun parse(dxdiag: Dxdiag): Dxdiag {
+        val section = (dxdiag["System Information"] as? Section) ?: return dxdiag
+        val systemInfoSection = section.subSections.first()
 
-    override fun getName(): String {
-        return "System Information"
+        dxdiag.extras["System Information"] = SystemInfo(systemInfoSection["Time of this report"],
+                systemInfoSection["Machine name"],
+                systemInfoSection["Operating System"],
+                systemInfoSection["Language"],
+                systemInfoSection["System Manufacturer"],
+                systemInfoSection["System Model"],
+                systemInfoSection["Processor"],
+                systemInfoSection["Memory"],
+                systemInfoSection["Windows Dir"])
+        return dxdiag
     }
-
 }

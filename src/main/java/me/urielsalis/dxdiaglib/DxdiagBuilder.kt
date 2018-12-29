@@ -1,111 +1,70 @@
 package me.urielsalis.dxdiaglib
 
 import me.urielsalis.dxdiaglib.model.Dxdiag
-import me.urielsalis.dxdiaglib.model.extradata.KeyValueSection
-import me.urielsalis.dxdiaglib.model.extradata.ListSection
-import me.urielsalis.dxdiaglib.model.extradata.Section
 import me.urielsalis.dxdiaglib.model.postprocessor.PostProcessor
 import me.urielsalis.dxdiaglib.model.postprocessor.RequiredParser
 import me.urielsalis.dxdiaglib.model.postprocessor.RequiredParserNotFound
 import me.urielsalis.dxdiaglib.parsers.DxdiagParser
+import me.urielsalis.dxdiaglib.state.*
+import kotlin.reflect.full.findAnnotation
 
 class DxdiagBuilder {
     var content = ""
     var parsers = mutableListOf<DxdiagParser>()
     var postProcessors = mutableListOf<PostProcessor>()
 
-    fun of(text: String): DxdiagBuilder {
+    fun of(text: String) = apply {
         this.content = text
-        return this
     }
 
-    fun withParser(parser: DxdiagParser): DxdiagBuilder {
-        parsers.add(parser)
-        return this
+    fun withParser(parser: DxdiagParser) = apply {
+        this.parsers.add(parser)
+    }
+
+    fun withPostProcessor(postProcessor: PostProcessor) = apply {
+        postProcessors.add(postProcessor)
     }
 
     fun parse(): Dxdiag {
-        val sections = parseFormat()
-        var dxdiag = Dxdiag(sections = sections, extraData = mutableMapOf(), parsers = parsers)
+        var dxdiag = parseDxdiag(content)
 
-        parsers.forEach { dxdiag.extraData[it.getName()] = it.parse(dxdiag.sections) }
-        val parsersClasses = parsers.map { it::class }
+        parsers.forEach {
+            dxdiag = it.parse(dxdiag)
+        }
 
         postProcessors.forEach {
-            val required = it::class.annotations.filterIsInstance<RequiredParser>().firstOrNull()?.value?.toList().orEmpty()
-            if (parsersClasses.containsAll(required)) {
+            if (parsers.map { it::class }.containsAll(it::class.findAnnotation<RequiredParser>()?.value?.toList().orEmpty())) {
                 dxdiag = it.process(dxdiag)
             } else {
                 throw RequiredParserNotFound()
             }
         }
+
         return dxdiag
     }
 
-    private fun parseFormat(): MutableMap<String, MutableList<Section>> {
-        var parsingSectionName = false
-        var endSection = false
-        var parsingSection = false
-        var sectionName = ""
-        var sectionContent = mutableListOf<String>()
-        var subsections = mutableListOf<Section>()
-        val sections = mutableMapOf<String, MutableList<Section>>()
-
-        content.lines().forEach {
-            when {
-                parsingSectionName -> {
-                    sectionName = it
-                    endSection = true
-                    parsingSectionName = false
+    private fun parseDxdiag(dxdiag: String): Dxdiag {
+        var currentState: State = InitialState(VariableContext("root"))
+        dxdiag.lines().forEach {
+            when (currentState) {
+                is InitialState -> {
+                    currentState = (currentState as InitialState).startSection(it)
                 }
-                it.trim().startsWith("-") && it.trim().endsWith("-") -> when {
-                    endSection -> {
-                        endSection = false
-                        parsingSection = true
-                    }
-                    parsingSection -> {
-                        parsingSection = false
-                        parsingSectionName = true
-                        sections[sectionName] = subsections
-                        subsections = mutableListOf()
-                        sectionContent = mutableListOf()
-                        sectionName = ""
-                    }
-                    else -> {
-                        parsingSectionName = true
-                    }
+                is SectionStart -> {
+                    currentState = (currentState as SectionStart).processSectionName(it)
                 }
-                parsingSection -> when {
-                    it.isBlank() -> {
-                        if (sectionContent.any { !it.contains(":") }) {
-                            subsections.add(ListSection(sectionContent))
-                        } else {
-                            val temp = mutableMapOf<String, MutableList<String>>()
-                            sectionContent.forEach {
-                                var key = it.substringBefore(':').trim()
-                                val value = it.substringAfter(':').trim()
-                                if (key == value || key.startsWith("|")) {
-                                    key = temp.size.toString()
-                                }
-                                if (temp.containsKey(key)) {
-                                    temp[key]!!.add(value)
-                                } else {
-                                    temp[key] = mutableListOf(value)
-                                }
-                            }
-                            subsections.add(KeyValueSection(temp))
-                        }
-                        sectionContent = mutableListOf()
-                    }
-                    else -> sectionContent.add(it)
+                is SectionName -> {
+                    currentState = (currentState as SectionName).finishSection(it)
+                }
+                is SectionEnd -> {
+                    currentState = (currentState as SectionEnd).verifyNextState(it)
+                }
+                is VariableRead -> {
+                    currentState = (currentState as VariableRead).verifyNextState(it)
                 }
             }
         }
-        return sections
+        return Dxdiag(currentState.context.sections, mutableMapOf())
     }
 
-    fun withPostProcessor(postProcessor: PostProcessor): DxdiagBuilder {
-        postProcessors.add(postProcessor)
-        return this
-    }
 }
