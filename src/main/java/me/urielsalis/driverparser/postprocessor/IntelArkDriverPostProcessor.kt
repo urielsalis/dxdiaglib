@@ -16,21 +16,26 @@ import java.net.URL
 @RequiredParser(SystemInfoParser::class)
 class IntelArkDriverPostProcessor : PostProcessor {
     override fun process(dxdiag: Dxdiag): Dxdiag {
-        val systemInfo = dxdiag["System Information"] as SystemInfo
-        val cpu = systemInfo.cpu!!
-        val split = cpu.split(" ")
-        val cpuName = split.filter { it.length > 2 }.last { it[0].isLetter() && it[1].isDigit() }
-        val mapper = jacksonObjectMapper()
-        val tree = mapper.readTree(URL("https://odata.intel.com/API/v1_0/Products/Processors()?api_key=${File("arkkey").readText()}&\$select=GraphicsModel&\$filter=substringof(%27$cpuName%27,ProductName)&\$format=json"))
-        val graphicsModel = tree["d"][0]["GraphicsModel"]?.textValue()
+        try {
+            val systemInfo = dxdiag["System Information"] as SystemInfo
+            val cpu = systemInfo.cpu!!
+            val split = cpu.split(" ")
+            val cpuName = split.filter { it.length > 2 }.last { it[0].isLetter() && it[1].isDigit() }
+            val mapper = jacksonObjectMapper()
+            val tree = mapper.readTree(URL("https://odata.intel.com/API/v1_0/Products/Processors()?api_key=${File("arkkey").readText()}&\$select=GraphicsModel&\$filter=substringof(%27$cpuName%27,ProductName)&\$format=json"))
+            val graphicsModel = tree["d"][0]["GraphicsModel"]?.textValue()
 
-        if (graphicsModel == null) {
-            dxdiag.extras[getName()] = DriverResults(mapOf(cpuName to DriverDownload(cpuName, "", "No iGPU")))
-            return dxdiag
+            if (graphicsModel == null) {
+                dxdiag.extras[getName()] = DriverResults(mapOf(cpuName to DriverDownload(cpuName, "", "No iGPU")))
+                return dxdiag
+            }
+            val result = findDriver(graphicsModel) ?: return dxdiag
+            val drivers: Map<String, DriverDownload> = mapOf(graphicsModel to result)
+            dxdiag.extras[getName()] = DriverResults(drivers)
+        } catch (e: Exception) {
+            //on any exception, just ignore as this is not important
+            e.printStackTrace()
         }
-        val result = findDriver(graphicsModel) ?: return dxdiag
-        val drivers: Map<String, DriverDownload> = mapOf(graphicsModel to result)
-        dxdiag.extras[getName()] = DriverResults(drivers)
         return dxdiag
     }
 

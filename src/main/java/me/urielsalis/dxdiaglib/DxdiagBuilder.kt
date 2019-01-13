@@ -36,7 +36,13 @@ class DxdiagBuilder {
 
         postProcessors.forEach {
             if (parsers.map { it::class }.containsAll(it::class.findAnnotation<RequiredParser>()?.value?.toList().orEmpty())) {
-                dxdiag = it.process(dxdiag)
+                try {
+                    dxdiag = it.process(dxdiag)
+                } catch (e: Exception) {
+                    //post processor throwed exception, this should be look at but we dont want to block other processors
+                    e.printStackTrace()
+                }
+
             } else {
                 throw RequiredParserNotFound()
             }

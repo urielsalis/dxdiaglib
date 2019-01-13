@@ -16,7 +16,7 @@ object Nvidia : DriverFinder {
     var downloads = mutableMapOf<Pair<String, String>, String>()
 
     override fun search(device: DisplayDevice, os: String): DriverDownload? {
-        val parsedOs = parseOS(os)
+        val parsedOs = parseOS(os.substringBefore("("))
         val name = if (device.chipType!!.endsWith("GB")) {
             val split = device.chipType.split(" ")
             split.subList(0, split.size - 1).joinToString(" ")
