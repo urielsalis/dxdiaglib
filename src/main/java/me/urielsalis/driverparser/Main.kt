@@ -59,12 +59,12 @@ class MyListener : ListenerAdapter() {
                         .withPostProcessor(IntelDriverPostProcessor())
                         .withPostProcessor(IntelArkDriverPostProcessor())
                         .parse()
-                val displayDevices = dxdiag.get("Display Devices") as DisplayDevices
-                val systemInfo = dxdiag.get("System Information") as SystemInfo
-                val nvidia = dxdiag.get("Nvidia driver")
-                val amd = dxdiag.get("AMD driver")
-                val intel = dxdiag.get("Intel driver")
-                val intelark = dxdiag.get("Intel ARK driver")
+                val displayDevices = dxdiag["Display Devices"] as DisplayDevices
+                val systemInfo = dxdiag["System Information"] as SystemInfo
+                val nvidia = dxdiag["Nvidia driver"]
+                val amd = dxdiag["AMD driver"]
+                val intel = dxdiag["Intel driver"]
+                val intelark = dxdiag["Intel ARK driver"]
                 println(link)
                 println(displayDevices)
                 println(systemInfo)

@@ -4,6 +4,10 @@ import com.fasterxml.jackson.databind.exc.MismatchedInputException
 import com.fasterxml.jackson.dataformat.xml.XmlMapper
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.runBlocking
 import me.urielsalis.driverparser.model.DriverDownload
 import me.urielsalis.driverparser.model.nvidia.LookupValue
 import me.urielsalis.driverparser.model.nvidia.LookupValueSearch
@@ -54,29 +58,42 @@ object Nvidia : DriverFinder {
         if (file.exists()) {
             downloads = mapper.readValue(file)
         } else {
-            //First step: Reading types(Geforce/Quadro/etc)
-            "https://www.nvidia.com/Download/API/lookupValueSearch.aspx?TypeID=1".parseAndLoop {
-                //Second step: Reading series
-                "https://www.nvidia.com/Download/API/lookupValueSearch.aspx?TypeID=2&ParentID=${it.value}".parseAndLoop {
-                    //Third step: Get OS supported by GPU
-                    val supportedOS = "https://www.nvidia.com/Download/API/lookupValueSearch.aspx?TypeID=4&ParentID=${it.value}"
-                            .parse()
-                            .map { Pair(it.name, it.value) }
-                            .toMap()
-
-                    //Fourth step: Getting specific GPUs in series
-                    "https://www.nvidia.com/Download/API/lookupValueSearch.aspx?TypeID=3&ParentID=${it.value}".parseAndLoop {
-                        //Last step: Get download link
-                        supportedOS.forEach { osName, osid ->
-                            downloads[Pair(it.name, osName)] = URL("https://www.nvidia.com/Download/processDriver.aspx?pfid=${it.value}&osid=$osid&lang=en-us")
-                                    .openConnection()
-                                    .getInputStream()
-                                    .bufferedReader()
-                                    .readText()
+            val defferedResults = mutableListOf<Deferred<List<Triple<String, String, String>>>>()
+            runBlocking {
+                //First step: Reading types(Geforce/Quadro/etc)
+                "https://www.nvidia.com/Download/API/lookupValueSearch.aspx?TypeID=1".parseAndLoop {
+                    //Second step: Reading series
+                    "https://www.nvidia.com/Download/API/lookupValueSearch.aspx?TypeID=2&ParentID=${it.value}".parseAndLoop {
+                        //Third step: Get OS supported by GPU
+                        val supportedOS = "https://www.nvidia.com/Download/API/lookupValueSearch.aspx?TypeID=4&ParentID=${it.value}"
+                                .parse()
+                                .map { Pair(it.name, it.value) }
+                                .toMap()
+                        println(it.name)
+                        //Fourth step: Getting specific GPUs in series
+                        "https://www.nvidia.com/Download/API/lookupValueSearch.aspx?TypeID=3&ParentID=${it.value}".parseAndLoop {
+                            //Last step: Get download link
+                            val result = async(Dispatchers.IO) {
+                                supportedOS.map { os ->
+                                    Triple(it.name, os.key, URL("https://www.nvidia.com/Download/processDriver.aspx?pfid=${it.value}&osid=${os.value}&lang=en-us")
+                                            .openConnection()
+                                            .getInputStream()
+                                            .bufferedReader()
+                                            .readText())
+                                }
+                            }
+                            synchronized(defferedResults) {
+                                defferedResults.add(result)
+                            }
                         }
                     }
                 }
+                val results = defferedResults.map { it.await() }.flatten()
+                for((name, osName, data) in results) {
+                    downloads[Pair(name, osName)] = data
+                }
             }
+
             mapper.writeValue(file, downloads)
         }
     }
